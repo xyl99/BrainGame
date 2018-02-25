@@ -1,7 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-
+using UnityEngine.UI;
 
 public class Tile
 {
@@ -13,6 +13,12 @@ public class Tile
 		this.tileObject = tileObject;
 		this.Type = Type;
 	}
+}
+
+public class Score
+{
+	public static int totalScore;
+
 }
 
 public class CreateGames4 : MonoBehaviour {
@@ -28,13 +34,20 @@ public class CreateGames4 : MonoBehaviour {
 	Ball ball2;
 	Ball ball3;
 
-	public int Target;
+	public int TargetBall;
+	public float WaktuBatas;
 	private int TValue = 0;
+	private int skor;
+	private float timer = 0;
+	private float TimerCount = 15;
 
 	public GameObject[] tile;
+	public Text score;
+	public Text TotalScore;
+	public Text countDown;
 
 	List<GameObject>tileBank = new List<GameObject>();
-	List<GameObject> select = new List<GameObject> (new GameObject[3]);
+	//List<GameObject> select =  new List<GameObject> (new GameObject[3]);
 
 	static int baris = 9;
 	static int kolom = 6;
@@ -43,6 +56,7 @@ public class CreateGames4 : MonoBehaviour {
 
 	//private GameObject[] selected = new GameObject[3];
 	private bool renewBoard = false;
+	private bool acak = false;
 
 	// Use this for initialization
 
@@ -63,11 +77,96 @@ public class CreateGames4 : MonoBehaviour {
 		}
 
 	}
+
+	private void clearObject()
+	{
+		GameObject[] obj = GameObject.FindGameObjectsWithTag ("Ball") as GameObject[];
+		for (int i = 0; i < obj.Length; i++) {
+			obj [i].SetActive (false);
+		}
+
+	}
+
+	private void reShuffle()
+	{
+
+		if (acak) {
+			
+			clearObject ();
+			// clone object in border
+			int jumlah = (baris * kolom) / 3;
+
+			for (int i = 0; i < jumlah; i++) {
+
+				for (int j = 0; j < tile.Length; j++) {
+
+					GameObject obj = (GameObject)Instantiate (tile [j], new Vector3 (-10, -10, 0), tile [j].transform.rotation);
+					obj.SetActive (false);
+					tileBank.Add (obj);
+
+				}
+
+				Shuffle ();
+
+			}
+
+			for (int b = 0; b < baris; b++) {
+
+				for (int k = 0; k < kolom; k++) {
+					Vector3 tilePos = new Vector3 (k, b, 0);
+
+					for (int n = 0; n < tileBank.Count; n++) {
+
+						GameObject obj = tileBank [n];
+
+						if (!obj.activeSelf) {
+
+							obj.transform.position = new Vector3 (tilePos.x, tilePos.y, tilePos.z);
+							obj.SetActive (true);
+							tiles [k, b] = new Tile (obj, obj.name);
+							n = tileBank.Count + 1;
+						}
+
+					}
+				}
+			}
+
+			Debug.Log ("ReShuffle!");
+			acak = false;
+			TimerCount = WaktuBatas;
+		}
+	}
+
+
+	private void Timer()
+	{
+		timer += Time.deltaTime;
+		if (timer > 1f) {
+			timer = 0;
+
+		
+
+			if (TimerCount > 0) {
+				TimerCount --;
+				string minutes = Mathf.Floor (TimerCount / 60).ToString ("00");
+				string seconds = Mathf.Floor (TimerCount % 60).ToString ("00");
+				countDown.text = minutes + ":" + seconds;
+			} 
+
+			else {
+
+				acak = true;
+				reShuffle ();
+			}
+
+		}
+	}
+
 	void Start () {
 
+		TimerCount = WaktuBatas;
 
-
-		// clone object in border
+		// clone object between inside camera
 		int jumlah = (baris * kolom) / 3;
 
 		for (int i = 0; i < jumlah; i++) {
@@ -107,7 +206,9 @@ public class CreateGames4 : MonoBehaviour {
 			}
 		}
 
-		Debug.Log ("Naufal");			
+		Debug.Log ("Naufal");	
+
+
 		
 	}
 		
@@ -173,11 +274,18 @@ public class CreateGames4 : MonoBehaviour {
 					
 				}
 
+				score.text = skor.ToString ();
+
 			}
 			
 		}
 
 
+		string minutes = Mathf.Floor (TimerCount / 60).ToString ("00");
+		string seconds = Mathf.Floor (TimerCount % 60).ToString ("00");
+		countDown.text = minutes + ":" + seconds;
+
+		Timer ();
 			
 	}
 
@@ -204,8 +312,10 @@ public class CreateGames4 : MonoBehaviour {
 						//reset counter
 						counter = 1;
 					}
-					// if there are found, remove them
-					if (counter == 3) {
+					// if there are found, calculate the value
+					if (counter == 3 && Input.GetMouseButtonDown(1)) {
+
+						Debug.Log ("Tercapai");
 						if (tiles [k, b] != null)
 							ball1 = tiles [k, b].tileObject.GetComponent<Ball> ();
 						if (tiles [k - 1, b] != null)
@@ -213,8 +323,8 @@ public class CreateGames4 : MonoBehaviour {
 						if (tiles [k - 2, b] != null)
 							ball3 = tiles [k - 2, b].tileObject.GetComponent<Ball> ();
 						TValue = ball1.getValue () + ball2.getValue () + ball3.getValue ();
-						//selectObj ();
-						if (Target <= TValue) {
+						// if their total value is reached target, remove them
+						if (TargetBall <= TValue) {
 
 							if (tiles [k, b] != null)
 								tiles [k, b].tileObject.SetActive (false);
@@ -225,6 +335,7 @@ public class CreateGames4 : MonoBehaviour {
 							tiles [k, b] = null;
 							tiles [k - 1, b] = null;
 							tiles [k - 2, b] = null;
+							skor += 1;
 							renewBoard = true;
 						}
 					}
@@ -250,8 +361,9 @@ public class CreateGames4 : MonoBehaviour {
 					else {
 						counter = 1;
 					}
-
-					if (counter == 3) {
+					// if there are found, calculate the value
+					if (counter == 3 && Input.GetMouseButtonDown(1)) {
+						Debug.Log ("Tercapai");
 						
 						if (tiles [k, b] != null)
 							ball1 = tiles [k, b].tileObject.GetComponent<Ball> ();
@@ -262,9 +374,8 @@ public class CreateGames4 : MonoBehaviour {
 						
 						TValue = ball1.getValue () + ball2.getValue () + ball3.getValue ();
 
-						//selectObj ();
-
-						if (Target <= TValue) {
+						// if their total value is reached target, remove them
+						if (TargetBall <= TValue) {
 
 							if (tiles [k, b] != null)
 								tiles [k, b].tileObject.SetActive (false);
@@ -275,6 +386,7 @@ public class CreateGames4 : MonoBehaviour {
 							tiles [k, b] = null;
 							tiles [k, b - 1] = null;
 							tiles [k, b - 2] = null;
+							skor += 1;
 							renewBoard = true;
 						}
 					}
